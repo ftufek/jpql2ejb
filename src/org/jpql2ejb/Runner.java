@@ -14,6 +14,7 @@ public class Runner {
 	private String outDir;
 
 	private Map<String, Entity> entities = new HashMap<String, Entity>();
+	private Map<String, ORMMapping> mappings = new HashMap<String, ORMMapping>();
 	
 	public Runner(String entityDir, String ormDir, String outDir){
 		this.entityDir = entityDir;
@@ -23,6 +24,7 @@ public class Runner {
 	
 	public void run() throws IOException{
 		scanEntities();
+		scanORMMappings();
 	}
 	
 	public void scanEntities() throws IOException{
@@ -31,6 +33,16 @@ public class Runner {
 		for(Path path : stream){
 			System.out.println("Scanning entity: "+path.getFileName());
 	        entities.put(path.getFileName().toString(), new Entity(path.toString()));
+		}
+		stream.close();
+	}
+	
+	public void scanORMMappings() throws IOException{
+		Path dir = FileSystems.getDefault().getPath(ormDir);
+		DirectoryStream<Path> stream = Files.newDirectoryStream(dir);
+		for(Path path : stream){
+			System.out.println("Scanning orm: "+path.getFileName());
+	        mappings.put(path.getFileName().toString(), new ORMMapping(path.toString()));
 		}
 		stream.close();
 	}

@@ -6,6 +6,7 @@ import japa.parser.ast.body.BodyDeclaration;
 import japa.parser.ast.body.FieldDeclaration;
 import japa.parser.ast.body.TypeDeclaration;
 import japa.parser.ast.body.VariableDeclarator;
+import japa.parser.ast.type.Type;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -17,11 +18,10 @@ public class Entity {
 	CompilationUnit cu;
 	
 	public String name;
-	public Map<TypeDeclaration, String> fields = new HashMap<TypeDeclaration, String>();
+	public Map<String, Type> fields = new HashMap<String, Type>();
 	
 	public Entity(String path) throws IOException{
 		FileInputStream in = new FileInputStream(path);
-
         cu = new CompilationUnit();
         try {
             // parse the file
@@ -29,12 +29,9 @@ public class Entity {
         }catch(Exception e){
         } finally {
             in.close();
-        }        
+        }
         
         getFields();
-        
-        // prints the resulting compilation unit to default system output
-        //System.out.println(cu.toString());
 	}
 	
 	private void getFields(){
@@ -45,7 +42,7 @@ public class Entity {
                 if (member instanceof FieldDeclaration) {
                     FieldDeclaration field = (FieldDeclaration) member;
                     for(VariableDeclarator varDec : field.getVariables()){
-                    	System.out.println("var: "+varDec.getId().toString());
+                    	fields.put(varDec.getId().toString(), field.getType());
                     }
                 }
             }

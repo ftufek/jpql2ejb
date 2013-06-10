@@ -11,6 +11,6 @@ public class jpql2ejb {
 //		   return;
 //	   }
 	   
-	   new Runner(args[0], "", "").run();
+	   new Runner(args[0], args[1], "").run();
    }
 }
