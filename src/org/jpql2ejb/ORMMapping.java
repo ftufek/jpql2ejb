@@ -13,9 +13,11 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 public class ORMMapping {
+	public String name;
 	private List<Query> queries = new ArrayList<Query>();
 	
-	public ORMMapping(String path) throws IOException {
+	public ORMMapping(String name, String path) throws IOException {
+		this.name = name.replaceAll(".xml", "");
 		FileInputStream in = new FileInputStream(path);
 		try {
 			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
