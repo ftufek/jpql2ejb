@@ -8,6 +8,7 @@ import java.util.Map;
 import com.sun.codemodel.JClassAlreadyExistsException;
 import com.sun.codemodel.JCodeModel;
 import com.sun.codemodel.JDefinedClass;
+import com.sun.codemodel.JMod;
 
 public class EJBGenerator {
 	private String path;
@@ -25,6 +26,16 @@ public class EJBGenerator {
 	
 	public void run(){
 		Collection<ORMMapping> c = mappings.values();
+		
+		//Stateless annotation
+		JCodeModel tempModel = new JCodeModel();
+		JDefinedClass statelessClass = null;
+		try {
+			statelessClass = tempModel._class("javax.ejb.Stateless");
+		} catch (JClassAlreadyExistsException e1) {
+			e1.printStackTrace();
+		}
+		
 		for(ORMMapping mapping : c){
 			JCodeModel codeModel = new JCodeModel();
 			try {
@@ -32,13 +43,30 @@ public class EJBGenerator {
 				System.out.println("Generating class: "+cl);
 				String packageName = path.replaceAll(projPath, "")
 									.replaceAll("/", ".").replaceFirst(".", "");
+				
 			    JDefinedClass definedClass = codeModel._class(packageName+"."+cl);
+			    definedClass.annotate(statelessClass);
+				
+			    for(Query q : mapping.getQueries()){
+			    	generateFunction(definedClass, cl, q);
+			    }
+			    
 				codeModel.build(new File(projPath+"/"));
+				
 			} catch (JClassAlreadyExistsException e) {
 			   // ...
 			} catch (IOException e) {
 			   // ...
 			}
 		}
+	}
+	
+	private void generateFunction(JDefinedClass clazz, String className, Query query){
+		String methodName = query.getName().replaceAll(className+".", "");
+		
+		//Find return type
+		System.out.println("For query: "+query.getQuery());
+		
+		clazz.method(JMod.PUBLIC, void.class, methodName);
 	}
 }

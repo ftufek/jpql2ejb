@@ -27,7 +27,7 @@ public class ORMMapping {
 			NodeList namedQueries = doc.getElementsByTagName("named-query");
 			for(int i = 0; i < namedQueries.getLength(); i++){
 				Node namedQuery = namedQueries.item(i);
-				String queryName = namedQuery.getAttributes().getNamedItem("name").toString();
+				String queryName = namedQuery.getAttributes().getNamedItem("name").getTextContent();
 				
 				NodeList children = namedQuery.getChildNodes();
 				Node query = null;
@@ -49,5 +49,9 @@ public class ORMMapping {
 		} finally {
 			in.close();
 		}
+	}
+	
+	public List<Query> getQueries(){
+		return queries;
 	}
 }
