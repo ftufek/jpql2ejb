@@ -1,5 +1,8 @@
 package org.jpql2ejb;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.sun.codemodel.JCodeModel;
 import com.sun.codemodel.JType;
 
@@ -8,14 +11,18 @@ public class Query {
 	//improve when have time
 	private String name;
 	private String query;
+	private String[] tokens;
 	
 	private String processing;
 	private JCodeModel model;
+	
+	private String[] reservedWords = {"select"};
 	
 	public Query(String name, String query){
 		this.name = name;
 		this.query = query.trim().toLowerCase();
 		this.processing = this.query;
+		this.tokens = query.replaceAll("=", " ").split(" ");
 		this.model = new JCodeModel();
 	}
 
@@ -36,29 +43,35 @@ public class Query {
 	}
 	
 	public JType getReturnType(){
+		try{
 		if(isSelect()){
 			String[] returning = toSelect();
 			if(returning.length == 1){
 				return getReturnType(returning[0]);
 			}
 		}
+		}catch(Exception e){
 		
+		
+		return model.VOID;
+		}
 		return model.VOID;
 	}
 	
 	private JType getReturnType(String param){
+		System.out.println("Param: "+param);
 		if(param.contains("count(")){
 			return model.LONG;
 		}else{
 			//otherwise search the query to find
 			//what the parameter is
-			int ix = query.indexOf(" "+param+" ");
-			String temp = query.substring(0, ix);
-			int t = temp.lastIndexOf(" ");
-			String p = temp.substring(t == -1 ? 0 : t);
-			
-			return model.ref(p);
+			String[] words = findWordBefore(param);
+			for(String w : words){
+				if(!isReserved(w))return model.ref(w);
+			}
 		}
+		
+		return model.VOID;
 	}
 	
 	private boolean isSelect(){
@@ -76,5 +89,30 @@ public class Query {
 		processing = processing.substring(FROMindex);
 		System.out.println("going to select: "+str);
 		return str.split(",");
+	}
+	
+	private String[] findWordBefore(String word){
+		System.out.println("Searching word before: "+word);
+		List<String> w = new ArrayList<String>();
+		String f = tokens[0];
+		for(int i = 1; i < tokens.length; i++){
+			String t = tokens[i];
+			if(t.equalsIgnoreCase(word)){
+				w.add(f);
+			}
+			f = t;
+		}
+		return w.toArray(new String[0]);
+	}
+	
+	private boolean contains(String[] list, String str){
+		for(String s : list){
+			if(s.equals(str))return true;
+		}
+		return false;
+	}
+	
+	private boolean isReserved(String w){
+		return contains(reservedWords, w.toLowerCase());
 	}
 }

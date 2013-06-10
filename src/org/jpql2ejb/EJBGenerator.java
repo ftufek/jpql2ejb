@@ -8,6 +8,7 @@ import java.util.Map;
 import com.sun.codemodel.JClassAlreadyExistsException;
 import com.sun.codemodel.JCodeModel;
 import com.sun.codemodel.JDefinedClass;
+import com.sun.codemodel.JFieldVar;
 import com.sun.codemodel.JMod;
 
 public class EJBGenerator {
@@ -30,8 +31,12 @@ public class EJBGenerator {
 		//Stateless annotation
 		JCodeModel tempModel = new JCodeModel();
 		JDefinedClass statelessClass = null;
+		JDefinedClass entityManagerClass = null;
+		JDefinedClass persistenceContextClass = null;
 		try {
 			statelessClass = tempModel._class("javax.ejb.Stateless");
+			entityManagerClass = tempModel._class("javax.persistence.EntityManager");
+			persistenceContextClass = tempModel._class("javax.persistence.PersistenceContext");
 		} catch (JClassAlreadyExistsException e1) {
 			e1.printStackTrace();
 		}
@@ -46,7 +51,10 @@ public class EJBGenerator {
 				
 			    JDefinedClass definedClass = codeModel._class(packageName+"."+cl);
 			    definedClass.annotate(statelessClass);
-				
+			    
+			    JFieldVar entityManager = definedClass.field(JMod.NONE, entityManagerClass, "em");
+				entityManager.annotate(persistenceContextClass);
+			    
 			    for(Query q : mapping.getQueries()){
 			    	generateFunction(definedClass, cl, q);
 			    }
@@ -58,10 +66,12 @@ public class EJBGenerator {
 			} catch (IOException e) {
 			   // ...
 			}
+			break;
 		}
 	}
 	
 	private void generateFunction(JDefinedClass clazz, String className, Query query){
+		System.out.println("Searching query: "+query.getName());
 		String methodName = query.getName().replaceAll(className+".", "");
 		
 		//Find return type		
