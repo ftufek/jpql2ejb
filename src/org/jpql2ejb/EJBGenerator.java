@@ -64,9 +64,7 @@ public class EJBGenerator {
 	private void generateFunction(JDefinedClass clazz, String className, Query query){
 		String methodName = query.getName().replaceAll(className+".", "");
 		
-		//Find return type
-		System.out.println("For query: "+query.getQuery());
-		
-		clazz.method(JMod.PUBLIC, void.class, methodName);
+		//Find return type		
+		clazz.method(JMod.PUBLIC, query.getReturnType(), methodName);
 	}
 }
