@@ -3,6 +3,7 @@ package org.jpql2ejb;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.sun.codemodel.JBlock;
 import com.sun.codemodel.JCodeModel;
 import com.sun.codemodel.JType;
 
@@ -51,11 +52,18 @@ public class Query {
 			}
 		}
 		}catch(Exception e){
-		
-		
-		return model.VOID;
+			return model.VOID;
 		}
 		return model.VOID;
+	}
+	
+	public void fillBody(JBlock body){
+		if(isSelect()){
+			body.directStatement(
+					"return em.createNamedQuery(\""+name+"\","+name.substring(0, name.indexOf("."))+".class).getResultList();");
+		}else{
+			
+		}
 	}
 	
 	private JType getReturnType(String param){
@@ -67,7 +75,7 @@ public class Query {
 			//what the parameter is
 			String[] words = findWordBefore(param);
 			for(String w : words){
-				if(!isReserved(w))return model.ref(w);
+				if(!isReserved(w))return model.ref("java.util.List<"+w+"> ");
 			}
 		}
 		

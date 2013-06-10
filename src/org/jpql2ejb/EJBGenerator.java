@@ -5,10 +5,12 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
 
+import com.sun.codemodel.JBlock;
 import com.sun.codemodel.JClassAlreadyExistsException;
 import com.sun.codemodel.JCodeModel;
 import com.sun.codemodel.JDefinedClass;
 import com.sun.codemodel.JFieldVar;
+import com.sun.codemodel.JMethod;
 import com.sun.codemodel.JMod;
 
 public class EJBGenerator {
@@ -62,11 +64,8 @@ public class EJBGenerator {
 				codeModel.build(new File(projPath+"/"));
 				
 			} catch (JClassAlreadyExistsException e) {
-			   // ...
 			} catch (IOException e) {
-			   // ...
 			}
-			break;
 		}
 	}
 	
@@ -75,6 +74,8 @@ public class EJBGenerator {
 		String methodName = query.getName().replaceAll(className+".", "");
 		
 		//Find return type		
-		clazz.method(JMod.PUBLIC, query.getReturnType(), methodName);
+		JMethod method = clazz.method(JMod.PUBLIC, query.getReturnType(), methodName);
+		JBlock body = method.body();
+		query.fillBody(body);
 	}
 }
