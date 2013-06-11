@@ -1,7 +1,10 @@
 package org.jpql2ejb;
 
+import static org.jpql2ejb.internal.Helper.contains;
+
 import java.util.ArrayList;
 
+import org.jpql2ejb.internal.Param;
 
 
 public class Query {
@@ -43,6 +46,27 @@ public class Query {
 		}
 	}
 	
+	public String getColQualifier(String col){
+		for(int i = 1; i <tokens.length; i++){
+			if(contains(new String[]{col}, tokens[i])){
+				if(!contains(reservedWords, tokens[i-1])){
+					return tokens[i-1];
+				}
+			}
+		}
+		return "";
+	}
+	
+	public Param[] getParams(){
+		ArrayList<Param> params = new ArrayList<>();
+		for(int i = 1; i < tokens.length; i++){
+			if(tokens[i].startsWith(":")){
+				params.add(new Param(tokens[i], tokens[i-1]));
+			}
+		}
+		return params.toArray(new Param[0]);
+	}
+	
 	private String[] getCols(){
 		return findTokens("select", reservedWords);
 	}
@@ -66,10 +90,11 @@ public class Query {
 				found = true;
 				break;
 			}
-			
 			sIx++;
 		}
-		if(found){
+		System.out.println("fIx: "+fIx);
+		System.out.println("sIx: "+sIx);
+		if(sIx > fIx+1 || found){
 			ArrayList<String> t = new ArrayList<>();
 			for(int i = fIx+1; i < sIx; i++){
 				t.add(tokens[i]);
@@ -80,28 +105,32 @@ public class Query {
 		}
 	}
 	
-	private boolean contains(String[] list, String str){
-		//this method is case insensitive
-		for(String s : list){
-			if(s.toLowerCase().equals(str.toLowerCase()))return true;
-		}
-		return false;
-	}
-	
 	private boolean isReserved(String w){
 		return contains(reservedWords, w.toLowerCase());
 	}
 
 	private void tokenize(){
-		tokens = originalQuery.replace('=', ' ').replace(',', ' ').split(" ");
+		tokens = originalQuery
+				.replace('=', ' ')
+				.replace(',', ' ')
+				.replace('\n', ' ')
+				.split(" ");
+		ArrayList<String> array = new ArrayList<>();
+		for(String s : tokens){
+			s = s.trim();
+			if(s.length() > 0){
+				array.add(s);
+			}
+		}
+		tokens = array.toArray(new String[0]);
 	}
 	
 	private void setQueryType(){
 		if(tokensContain("select")){
 			queryType = QueryType.SELECT;
+		}else{
+			queryType = QueryType.UNKNOWN;
 		}
-		
-		queryType = QueryType.UNKNOWN;
 	}
 	
 	private boolean tokensContain(String str){
