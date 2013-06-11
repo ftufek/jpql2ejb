@@ -5,12 +5,12 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
 
-import com.sun.codemodel.JBlock;
+import org.jpql2ejb.internal.CommonModel;
+
 import com.sun.codemodel.JClassAlreadyExistsException;
 import com.sun.codemodel.JCodeModel;
 import com.sun.codemodel.JDefinedClass;
 import com.sun.codemodel.JFieldVar;
-import com.sun.codemodel.JMethod;
 import com.sun.codemodel.JMod;
 
 public class EJBGenerator {
@@ -19,29 +19,19 @@ public class EJBGenerator {
 	private Map<String,Entity> entities;
 	private Map<String,ORMMapping> mappings;
 	
+	private CommonModel cm;
+	
 	public EJBGenerator(String path, String projPath, Map<String,Entity> entities,
 			Map<String, ORMMapping> mappings){
 		this.path = path;
 		this.entities = entities;
 		this.mappings = mappings;
 		this.projPath = projPath;
+		this.cm = new CommonModel();
 	}
 	
 	public void run(){
-		Collection<ORMMapping> c = mappings.values();
-		
-		//Stateless annotation
-		JCodeModel tempModel = new JCodeModel();
-		JDefinedClass statelessClass = null;
-		JDefinedClass entityManagerClass = null;
-		JDefinedClass persistenceContextClass = null;
-		try {
-			statelessClass = tempModel._class("javax.ejb.Stateless");
-			entityManagerClass = tempModel._class("javax.persistence.EntityManager");
-			persistenceContextClass = tempModel._class("javax.persistence.PersistenceContext");
-		} catch (JClassAlreadyExistsException e1) {
-			e1.printStackTrace();
-		}
+		Collection<ORMMapping> c = mappings.values();		
 		
 		for(ORMMapping mapping : c){
 			JCodeModel codeModel = new JCodeModel();
@@ -52,13 +42,13 @@ public class EJBGenerator {
 									.replaceAll("/", ".").replaceFirst(".", "");
 				
 			    JDefinedClass definedClass = codeModel._class(packageName+"."+cl);
-			    definedClass.annotate(statelessClass);
+			    definedClass.annotate(cm.getClass("Stateless"));
 			    
-			    JFieldVar entityManager = definedClass.field(JMod.NONE, entityManagerClass, "em");
-				entityManager.annotate(persistenceContextClass);
+			    JFieldVar entityManager = definedClass.field(JMod.NONE, cm.getClass("EntityManager"), "em");
+				entityManager.annotate(cm.getClass("PersistenceContext"));
 			    
 			    for(Query q : mapping.getQueries()){
-			    	generateFunction(definedClass, cl, q);
+			    	//generateFunction(definedClass, cl, q);
 			    }
 			    
 				codeModel.build(new File(projPath+"/"));
@@ -67,15 +57,5 @@ public class EJBGenerator {
 			} catch (IOException e) {
 			}
 		}
-	}
-	
-	private void generateFunction(JDefinedClass clazz, String className, Query query){
-		System.out.println("Searching query: "+query.getName());
-		String methodName = query.getName().replaceAll(className+".", "");
-		
-		//Find return type		
-		JMethod method = clazz.method(JMod.PUBLIC, query.getReturnType(), methodName);
-		JBlock body = method.body();
-		query.fillBody(body);
 	}
 }

@@ -1,30 +1,30 @@
 package org.jpql2ejb;
 
 import java.util.ArrayList;
-import java.util.List;
 
-import com.sun.codemodel.JBlock;
-import com.sun.codemodel.JCodeModel;
-import com.sun.codemodel.JType;
+
 
 public class Query {
-	//TODO: this query parsing is very ugly,
-	//improve when have time
 	private String name;
-	private String query;
+	private String originalQuery;
 	private String[] tokens;
 	
-	private String processing;
-	private JCodeModel model;
+	private String[] reservedWords = {"select","from","left join"};
 	
-	private String[] reservedWords = {"select"};
+	private enum QueryType {
+		SELECT,
+		UPDATE,
+		DELETE,
+		UNKNOWN
+	};
+	
+	private QueryType queryType;
 	
 	public Query(String name, String query){
 		this.name = name;
-		this.query = query.trim().toLowerCase();
-		this.processing = this.query;
-		this.tokens = query.replaceAll("=", " ").split(" ");
-		this.model = new JCodeModel();
+		this.originalQuery = query;
+		tokenize();
+		setQueryType();
 	}
 
 	public String getName() {
@@ -34,93 +34,77 @@ public class Query {
 	public void setName(String name) {
 		this.name = name;
 	}
-
-	public String getQuery() {
-		return query;
-	}
-
-	public void setQuery(String query) {
-		this.query = query;
+	
+	public String[] getReturnType(){
+		if(queryType == QueryType.SELECT){
+			return getCols();
+		}else{
+			return new String[0];
+		}
 	}
 	
-	public JType getReturnType(){
-		try{
-		if(isSelect()){
-			String[] returning = toSelect();
-			if(returning.length == 1){
-				return getReturnType(returning[0]);
+	private String[] getCols(){
+		return findTokens("select", reservedWords);
+	}
+	
+	private String[] findTokens(String after, String[] before){
+		return findTokens(new String[]{after}, before);
+	}
+	
+	private String[] findTokens(String[] after, String[] before){
+		int fIx = 0;
+		for(int i = 0; i < tokens.length; i++){
+			if(contains(after, tokens[i])){
+				fIx = i;
+				break;
 			}
 		}
-		}catch(Exception e){
-			return model.VOID;
-		}
-		return model.VOID;
-	}
-	
-	public void fillBody(JBlock body){
-		if(isSelect()){
-			body.directStatement(
-					"return em.createNamedQuery(\""+name+"\","+name.substring(0, name.indexOf("."))+".class).getResultList();");
-		}else{
+		int sIx = fIx + 1;
+		boolean found = false;
+		while(sIx < tokens.length){
+			if(contains(before, tokens[sIx])){
+				found = true;
+				break;
+			}
 			
+			sIx++;
 		}
-	}
-	
-	private JType getReturnType(String param){
-		System.out.println("Param: "+param);
-		if(param.contains("count(")){
-			return model.LONG;
+		if(found){
+			ArrayList<String> t = new ArrayList<>();
+			for(int i = fIx+1; i < sIx; i++){
+				t.add(tokens[i]);
+			}
+			return t.toArray(new String[0]);
 		}else{
-			//otherwise search the query to find
-			//what the parameter is
-			String[] words = findWordBefore(param);
-			for(String w : words){
-				if(!isReserved(w))return model.ref("java.util.List<"+w+"> ");
-			}
+			return new String[0];
 		}
-		
-		return model.VOID;
-	}
-	
-	private boolean isSelect(){
-		if(query.startsWith("select")){
-			processing = processing.replaceFirst("select", "").trim();
-			return true;
-		}
-		return false;
-	}
-	
-	private String[] toSelect(){
-		//works only for select
-		int FROMindex = processing.indexOf("from");
-		String str = processing.substring(0, FROMindex).replaceAll(" ", "");
-		processing = processing.substring(FROMindex);
-		System.out.println("going to select: "+str);
-		return str.split(",");
-	}
-	
-	private String[] findWordBefore(String word){
-		System.out.println("Searching word before: "+word);
-		List<String> w = new ArrayList<String>();
-		String f = tokens[0];
-		for(int i = 1; i < tokens.length; i++){
-			String t = tokens[i];
-			if(t.equalsIgnoreCase(word)){
-				w.add(f);
-			}
-			f = t;
-		}
-		return w.toArray(new String[0]);
 	}
 	
 	private boolean contains(String[] list, String str){
+		//this method is case insensitive
 		for(String s : list){
-			if(s.equals(str))return true;
+			if(s.toLowerCase().equals(str.toLowerCase()))return true;
 		}
 		return false;
 	}
 	
 	private boolean isReserved(String w){
 		return contains(reservedWords, w.toLowerCase());
+	}
+
+	private void tokenize(){
+		tokens = originalQuery.replace('=', ' ').replace(',', ' ').split(" ");
+	}
+	
+	private void setQueryType(){
+		if(tokensContain("select")){
+			queryType = QueryType.SELECT;
+		}
+		
+		queryType = QueryType.UNKNOWN;
+	}
+	
+	private boolean tokensContain(String str){
+		return contains(tokens, str);
 	}
 }
